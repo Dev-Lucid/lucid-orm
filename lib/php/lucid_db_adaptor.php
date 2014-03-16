@@ -2,6 +2,10 @@
 
 class lucid_db_adaptor
 {
+	protected $pdo;
+	protected $is_connected;
+
+
 	public static function init()
 	{
 		global $lucid;
@@ -37,7 +41,7 @@ class lucid_db_adaptor
 		return array_map(function($in){return $in[0];},$result);
 	}
 	
-	public function columns($table)
+	protected function info_schema__get_columns($table)
 	{
 		global $lucid;
 		$sql = '
@@ -53,6 +57,22 @@ class lucid_db_adaptor
 		}
 		$result = $statement->fetchAll();	
 		return $result;
+	}
+
+	public function columns($table)
+	{
+		return $this->info_schema__get_columns($table);
+	}
+
+	public function is_connected()
+	{
+		global $lucid;
+		return $this->pdo->getAttribute(PDO::ATTR_CONNECTION_STATUS);
+	}
+
+	public function quote($value)
+	{
+		return $this->pdo->quote($value);
 	}
 }
 

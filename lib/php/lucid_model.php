@@ -31,13 +31,13 @@ class lucid_model extends lucid_model_iterator
 		$this->column_count = count($this->columns);
 		for($i=0;$i<$this->column_count;$i++)
 		{
-			$this->column_idx[$this->columns[$i]['column_name']] = $i;
+			$this->column_idx[$this->columns[$i]['name']] = $i;
 		}
 	}
 	
 	public function get_idx_value($col_idx)
 	{
-		return $this->data[$this->row][$this->columns[$col_idx]['column_name']];
+		return $this->data[$this->row][$this->columns[$col_idx]['name']];
 	}
 	
 	public function get_value($col_name)
@@ -59,18 +59,48 @@ class lucid_model extends lucid_model_iterator
 	public static function __callStatic($model_name,$params)
 	{
 		global $lucid;
-		$base_class_name = 'lucid_model_base__'.$model_name;
+		$base_class_name = 'lucid_model__base__'.$model_name;
 		$main_class_name = 'lucid_model__'.$model_name;
 		if(!class_exists($base_class_name))
 		{
-			include($lucid->config['model-dir'].'base/'.$model_name.'.php');
+			include($lucid->config['model-path'].'base/'.$model_name.'.php');
 		}
 		if(!class_exists($main_class_name))
 		{
-			include($lucid->config['model-dir'].$model_name.'.php');
+			include($lucid->config['model-path'].$model_name.'.php');
 		}
 		$model = new $main_class_name();
 		return $model;
+	}
+
+	public static function build($name,$columns)
+	{
+		global $lucid;
+
+		$parent_src = "<?php\n";
+		$child_src  = "<?php\n";
+
+		$parent_src .= "class lucid_model__base__$name extends lucid_model\n{\n";
+		$child_src  .= "class lucid_model__$name extends class lucid_model__base__$name\n{\n";
+
+		$parent_src .= "\tprotected function init_columns()\n\t{\n";
+		foreach($columns as $column)
+		{
+			$parent_src .= "\t\t$"."this->columns[] = new lucid_db_column(";
+			$parent_src .= $column->idx.',';
+			$parent_src .= "'".$column->name."',";
+			$parent_src .= "'".$column->type."',";
+			$parent_src .= ((is_null($column->length))?'null':$column->length).',';
+			$parent_src .= ((is_null($column->default_value))?'null':$lucid->db->quote($column->default_value)).',';
+			$parent_src .= ((is_null($column->is_nullable))?'true':'false');
+			$parent_src .= ");\n";
+		}
+		$parent_src .= "\t\t$"."this->build_column_index();\n";
+		$parent_src .= "\t}\n";
+
+		$parent_src .= "}\n?".">";
+		$child_src  .= "}\n?".">";
+		return array($parent_src,$child_src);
 	}
 }
 

@@ -53,7 +53,7 @@ class lucid_model_sqlclause
 			$clauses .= ' '.$this->sql_clauses['where'][$i]['operator'].' ';
 			if($operator == 'in')
 			{
-				$vals = [];
+				$vals = array();
 				foreach($this->sql_clauses['where'][$i]['value'] as $value)
 				{
 					$vals[] = PDO::quote($value);
