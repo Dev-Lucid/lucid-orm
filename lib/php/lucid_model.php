@@ -6,6 +6,7 @@ class lucid_model extends lucid_model_iterator
 	{
 		$this->table = str_replace('lucid_model__','',get_class($this));
 		$this->data  = array();
+		$this->count = 0;
 		$this->row   = -1;
 		$this->loaded = false;
 		$this->sql_clauses = array(
@@ -13,15 +14,18 @@ class lucid_model extends lucid_model_iterator
 			'join'=>array(),
 			'sort'=>array(),
 			'group'=>array(),
+			'limit'=>null,
+			'offset'=>null,
 		);
 		$this->columns    = array();
+		$this->changed_idx = array();
 		$this->column_idx = array();
 		
 		$this->init_columns();
 	}
 	
 	# this is always overridden in child class
-	function init_columns()
+	public function init_columns()
 	{
 		throw new Exception('init_columns called in model '.$this->table.', model must contain init_columns',98);
 	}
@@ -31,7 +35,7 @@ class lucid_model extends lucid_model_iterator
 		$this->column_count = count($this->columns);
 		for($i=0;$i<$this->column_count;$i++)
 		{
-			$this->column_idx[$this->columns[$i]['name']] = $i;
+			$this->column_idx[$this->columns[$i]->name] = $i;
 		}
 	}
 	
@@ -63,11 +67,11 @@ class lucid_model extends lucid_model_iterator
 		$main_class_name = 'lucid_model__'.$model_name;
 		if(!class_exists($base_class_name))
 		{
-			include($lucid->config['model-path'].'base/'.$model_name.'.php');
+			include($lucid->db->model_path.'base/'.$model_name.'.php');
 		}
 		if(!class_exists($main_class_name))
 		{
-			include($lucid->config['model-path'].$model_name.'.php');
+			include($lucid->db->model_path.$model_name.'.php');
 		}
 		$model = new $main_class_name();
 		return $model;
@@ -81,9 +85,9 @@ class lucid_model extends lucid_model_iterator
 		$child_src  = "<?php\n";
 
 		$parent_src .= "class lucid_model__base__$name extends lucid_model\n{\n";
-		$child_src  .= "class lucid_model__$name extends class lucid_model__base__$name\n{\n";
+		$child_src  .= "class lucid_model__$name extends lucid_model__base__$name\n{\n";
 
-		$parent_src .= "\tprotected function init_columns()\n\t{\n";
+		$parent_src .= "\tpublic function init_columns()\n\t{\n";
 		foreach($columns as $column)
 		{
 			$parent_src .= "\t\t$"."this->columns[] = new lucid_db_column(";

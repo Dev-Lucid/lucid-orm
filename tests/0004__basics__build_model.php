@@ -6,7 +6,7 @@ function test_0004__basics__build_model()
 	$parent_src_expected='<?php
 class lucid_model__base__users extends lucid_model
 {
-	protected function init_columns()
+	public function init_columns()
 	{
 		$this->columns[] = new lucid_db_column(0,\'user_id\',\'integer\',null,null,false);
 		$this->columns[] = new lucid_db_column(1,\'org_id\',\'integer\',null,null,false);
@@ -20,7 +20,7 @@ class lucid_model__base__users extends lucid_model
 }
 ?'.'>';
 	$child_src_expected='<?php
-class lucid_model__users extends class lucid_model__base__users
+class lucid_model__users extends lucid_model__base__users
 {
 }
 ?'.'>';
@@ -29,6 +29,17 @@ class lucid_model__users extends class lucid_model__base__users
 
 	if($parent_src == $parent_src_expected and $child_src == $child_src_expected)
 	{
+		# once we're sure that the model building logic works,
+		# then build models for all of the tables.
+		$tables = $lucid->db->tables();
+		
+		foreach($tables as $table)
+		{
+			list($parent_src,$child_src) = lucid_model::build($table,$lucid->db->columns($table));
+			file_put_contents($lucid->db->model_path.'/base/'.$table.'.php',$parent_src);
+			file_put_contents($lucid->db->model_path.'/'.$table.'.php',$child_src);
+		}
+		
 		return array(true);
 	}
 	else if($parent_src == $parent_src_expected and $child_src != $child_src_expected)

@@ -2,18 +2,15 @@
 
 class lucid_db_adaptor
 {
+	public    $last_sql;
 	protected $pdo;
 	protected $is_connected;
 
 
-	public static function init()
+	public static function init($config)
 	{
-		global $lucid;
 		
-		if(!isset($lucid->config['db']) || !isset($lucid->config['db']['type']) || is_null($lucid->config['db']['type']) || $lucid->config['db']['type'] == '')
-			return;
-		
-		$adaptor_class = 'lucid_db_adaptor_'.$lucid->config['db']['type'];
+		$adaptor_class = 'lucid_db_adaptor_'.$config['type'];
 		
 		if(file_exists(__DIR__.'/'.$adaptor_class.'.php'))
 		{
@@ -21,9 +18,10 @@ class lucid_db_adaptor
 		}
 		else
 		{
-			throw new Exception('No database adaptor for type '.$lucid->config['db']['type']);
+			throw new Exception('No database adaptor for type '.$config['type']);
 		}
-		new $adaptor_class();
+		$adaptor = new $adaptor_class($config);
+		return $adaptor;
 	}
 	
 	# these are low level functions that just return arrays, not objectsa
@@ -74,6 +72,36 @@ class lucid_db_adaptor
 	{
 		return $this->pdo->quote($value);
 	}
+	
+	public function query($sql)
+	{
+		$this->last_sql = $sql;
+		return $this->pdo->query($sql);
+	}
+	
+	public function error()
+	{
+		list($sql_state, $code, $msg) = $this->pdo->errorInfo();
+		return '('.$sql_state.':'.$code.') '.$msg;
+	}
+	
+	public function bind_and_run($sql,$data)
+	{
+		$statement = $this->pdo->prepare($sql);
+		
+		foreach($data as $key=>$value)
+		{
+			$statement->bindValue(':'.$key,$value);
+		}
+		
+		return $statement->execute();
+	}
+	
+	public function last_insert_id()
+	{
+		return $this->pdo->lastInsertId();
+	}
+	
 }
 
 ?>

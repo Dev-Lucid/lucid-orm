@@ -2,22 +2,18 @@
 
 class lucid_db_adaptor_sqlite extends lucid_db_adaptor
 {
-	public function __construct()
-	{
-		global $lucid;
-			
+	public function __construct($config)
+	{		
 		$this->is_connected = false;
-		$lucid->db = $this;
-		$this->pdo = new PDO('sqlite:'.$lucid->config['db']['path']);
+		$this->pdo = new PDO('sqlite:'.$config['path']);
+		$this->model_path = $config['model_path'];
 		$this->is_connected = true;
 	}
 
 	# these are low level functions that just return arrays, not objectsa
 	public function tables()
 	{
-		global $lucid;
-
-		$sql = 'SELECT name as table_name FROM sqlite_master WHERE type=\'table\' and name<>\'sqlite_sequence\';';
+		$sql = 'SELECT name as table_name FROM sqlite_master WHERE type=\'table\' and name<>\'sqlite_sequence\' order by name;';
 
 		$statement = $this->pdo->query($sql);
 		if($statement === false)
@@ -31,7 +27,6 @@ class lucid_db_adaptor_sqlite extends lucid_db_adaptor
 
 	public function columns($table)
 	{
-		global $lucid;
 		$sql = 'PRAGMA table_info('.$this->pdo->quote($table).');';
 		$statement = $this->pdo->query($sql);
 		if($statement === false)
@@ -78,7 +73,6 @@ class lucid_db_adaptor_sqlite extends lucid_db_adaptor
 
 	public function is_connected()
 	{
-		global $lucid;
 		return $this->is_connected;
 	}
 }

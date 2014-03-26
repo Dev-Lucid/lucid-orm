@@ -7,6 +7,8 @@ class lucid_db_adaptor_mysql extends lucid_db_adaptor
 		global $lucid;
 		$this->is_connected = false;
 		$lucid->db = $this;
+		$this->model_path = $config['model_path'];
+
 		
 		$dsn = 'mysql:host='.$lucid->config['db']['hostname'].';dbname='.$lucid->config['db']['database'].';';
 		$this->pdo = new PDO(
