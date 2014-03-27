@@ -16,7 +16,7 @@ class lucid_model_iterator extends lucid_model_arrayaccess implements Iterator
 	
 	public function next()
 	{
-		#lucid::log('next called, row is currently '.$this->row.'. incrementing');
+		#echo('next called, row is currently '.$this->row.'. incrementing'."\n");
 		$this->row++;
 		return $this;
 	}

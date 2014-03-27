@@ -2,16 +2,36 @@
 
 class lucid_model extends lucid_model_iterator
 {
+	public $db;
+	public $_table;
+	public $_data;
+	public $_columns;
+	public $_keys;
+	public $_changed_idx;
+	public $_column_idx;
+	public $_sql_clauses;
+	public $_loaded;
+	
+	public $row;
+	public $count;
+	public $column_count;
+	public $_last_sql;
+	
 	public function __construct()
 	{
-		$this->_table = str_replace('lucid_model__','',get_class($this));
-		$this->reset();
-		$this->_columns     = array();
-		$this->_keys        = array();
-		$this->_changed_idx = array();
-		$this->_column_idx  = array();
+		$this->db = null;
+		$this->_table       = str_replace('lucid_model__','',get_class($this));
+		$this->_data        = null;
+		$this->_columns     = null;
+		$this->_keys        = null;
+		$this->_changed_idx = null;
+		$this->_column_idx  = null;
+		$this->_sql_clauses = null;
+		$this->_loaded      = false;
+	
 		$this->_init_columns();
 		$this->_build_column_index();
+		$this->reset();
 	}
 
 	public function reset($reset_clauses=true)
@@ -20,6 +40,7 @@ class lucid_model extends lucid_model_iterator
 		$this->_data     = array();
 		$this->row       = -1;
 		$this->count     = 0;
+		
 		if($reset_clauses === true)
 		{
 			$this->_sql_clauses['where']  = array();
@@ -64,13 +85,42 @@ class lucid_model extends lucid_model_iterator
 	
 	public function __toString()
 	{
-		$description = "[".get_class($this)."]: ".print_r($this->_data[$this->row],true);
+		$description = "[".get_class($this)."]: ".json_encode($this->_data[$this->row]);
 		return $description;
 	}
 	
-	public function __call($table,$params)
+	public function __get($name)
 	{
+		if($this->row < 0)
+		{
+			throw new Exception('Could not get joined table '.$name.' from '.$this->_table.', parent table not loaded yet');
+		}
+		if(!is_array($this->_data[$this->row]['_relations']))
+		{
+			$this->_data[$this->row]['_relations'] = array();
+		}
+		if(!isset($this->_data[$this->row]['_relations'][$name]))
+		{
+			$this->_data[$this->row]['_relations'][$name] = $this->_get_joined_model($name);
+		}
+		return $this->_data[$this->row]['_relations'][$name];
+	}
+	
+	public function __set($name,$model)
+	{
+		if($this->row < 0)
+		{
+			$this->new_row();
+		}
+		if(!is_array($this->_data[$this->row]['_relations']))
+		{
+			$this->_data[$this->row]['_relations'] = array();
+		}
+		$this->_data[$this->row]['_relations'][$name] = $model;
+	}
 		
+	public function _get_joined_model($table)
+	{
 		$model = $this->db->$table();
 		
 		if(isset($this->_keys[$table]))

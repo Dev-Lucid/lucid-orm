@@ -59,6 +59,7 @@ class lucid_model_sqlclause
 		$this->select();
 		if($this->count == 1)
 		{
+			#print_r($this);
 			$this->next();
 		}
 		else if($this->count == 0)

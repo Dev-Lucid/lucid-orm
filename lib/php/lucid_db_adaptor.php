@@ -5,6 +5,7 @@ class lucid_db_adaptor
 	public    $last_sql;
 	protected $pdo;
 	protected $is_connected;
+	public    $query_log;
 
 	public static function init($config)
 	{
@@ -18,6 +19,7 @@ class lucid_db_adaptor
 			throw new Exception('No database adaptor for type '.$config['type']);
 		}
 		$adaptor = new $adaptor_class($config);
+		$adaptor->query_log = array();
 		return $adaptor;
 	}
 	
@@ -75,6 +77,7 @@ class lucid_db_adaptor
 	public function query($sql)
 	{
 		$this->_last_sql = $sql;
+		$this->query_log[] = $sql;
 		return $this->pdo->query($sql);
 	}
 	
@@ -86,6 +89,8 @@ class lucid_db_adaptor
 	
 	public function bind_and_run($sql,$data)
 	{
+		$this->query_log[] = $sql;
+		$this->_last_sql   = $sql;
 		$statement = $this->pdo->prepare($sql);
 		
 		if($statement === false)
@@ -129,6 +134,11 @@ class lucid_db_adaptor
 		}
 		$model = new $main_class_name();
 		$model->db = $this;
+		
+		if(count($params) == 1 and is_numeric($params[0]))
+		{
+			$model->one($params[0]);
+		}
 		return $model;
 	}
 
