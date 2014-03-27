@@ -3,10 +3,10 @@
 function test_0003__basics__list_columns()
 {
 	global $lucid;
-	$columns = $lucid->db->columns('users');
+	$columns = $lucid->db->_schema_columns('users');
 	if(count($columns) == 0)
 	{
-		return array(false,'->columns() returned a zero length array.');
+		return array(false,'->_columns() returned a zero length array.');
 	}	
 	if($columns[0]->name != 'user_id')
 	{

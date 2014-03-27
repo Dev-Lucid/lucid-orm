@@ -18,11 +18,12 @@ class lucid_model_iterator extends lucid_model_arrayaccess implements Iterator
 	{
 		#lucid::log('next called, row is currently '.$this->row.'. incrementing');
 		$this->row++;
+		return $this;
 	}
 	
 	public function rewind()
 	{
-		if(!$this->loaded)
+		if(!$this->_loaded)
 		{
 			$this->select();
 		}
@@ -32,9 +33,9 @@ class lucid_model_iterator extends lucid_model_arrayaccess implements Iterator
 	
 	public function valid()
 	{
-		if(!isset($this->data[$this->row]))
+		if(!isset($this->_data[$this->row]))
 			return false;
-		return is_array($this->data[$this->row]);
+		return is_array($this->_data[$this->row]);
 	}
 }
 

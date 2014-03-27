@@ -11,7 +11,7 @@ class lucid_db_adaptor_sqlite extends lucid_db_adaptor
 	}
 
 	# these are low level functions that just return arrays, not objectsa
-	public function tables()
+	public function _schema_tables()
 	{
 		$sql = 'SELECT name as table_name FROM sqlite_master WHERE type=\'table\' and name<>\'sqlite_sequence\' order by name;';
 
@@ -25,7 +25,7 @@ class lucid_db_adaptor_sqlite extends lucid_db_adaptor
 		return array_map(function($in){return $in[0];},$result);
 	}
 
-	public function columns($table)
+	public function _schema_columns($table)
 	{
 		$sql = 'PRAGMA table_info('.$this->pdo->quote($table).');';
 		$statement = $this->pdo->query($sql);
@@ -70,7 +70,26 @@ class lucid_db_adaptor_sqlite extends lucid_db_adaptor
 		return $final_columns;
 	}
 
-
+	
+	public function _schema_keys($table)
+	{
+		$keys = array();
+		$result = $this->pdo->query('select sql from sqlite_master where type=\'table\' and name='.$this->quote($table).';')->fetchAll();
+		$columns = explode("\n",$result[0]['sql']);
+		array_pop($columns);
+		array_shift($columns);
+		foreach($columns as $column)
+		{
+			preg_match('/([a-zA-Z0-9_]*) ..* (?i:references) (..*)\((..*)\)/',$column,$matches);
+			if(count($matches) > 0)
+			{
+				array_shift($matches);
+				$keys[] = $matches;
+			}
+		}
+		return $keys;
+	}
+	
 	public function is_connected()
 	{
 		return $this->is_connected;

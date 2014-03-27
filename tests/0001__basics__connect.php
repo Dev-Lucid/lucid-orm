@@ -25,7 +25,6 @@ function test_0001__basics__connect()
 		$return = shell_exec("rm ".__DIR__."/test_db1.sqlite; cat ".__DIR__."/test_db1.sql | sqlite3 ".__DIR__."/test_db1.sqlite;");
 	}
 
-
 	$result = $lucid->db->is_connected();
 	if($result)
 	{

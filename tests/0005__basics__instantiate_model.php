@@ -5,7 +5,7 @@ function test_0005__basics__instantiate_model()
 	global $lucid;
 	try
 	{
-		$users1 = lucid_model::users();
+		$users1 = $lucid->db->users();
 	}
 	catch(Exception $e)
 	{
@@ -13,7 +13,7 @@ function test_0005__basics__instantiate_model()
 	}
 	try
 	{
-		$orgs = lucid_model::organizations();
+		$orgs = $lucid->db->organizations();
 	}
 	catch(Exception $e)
 	{
@@ -21,7 +21,7 @@ function test_0005__basics__instantiate_model()
 	}
 	try
 	{
-		$roles = lucid_model::roles();
+		$roles = $lucid->db->roles();
 	}
 	catch(Exception $e)
 	{
@@ -29,7 +29,7 @@ function test_0005__basics__instantiate_model()
 	}
 	try
 	{
-		$users2 = lucid_model::users();
+		$users2 = $lucid->db->users();
 	}
 	catch(Exception $e)
 	{

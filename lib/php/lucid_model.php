@@ -4,107 +4,96 @@ class lucid_model extends lucid_model_iterator
 {
 	public function __construct()
 	{
-		$this->table = str_replace('lucid_model__','',get_class($this));
-		$this->data  = array();
-		$this->count = 0;
-		$this->row   = -1;
-		$this->loaded = false;
-		$this->sql_clauses = array(
-			'where'=>array(),
-			'join'=>array(),
-			'sort'=>array(),
-			'group'=>array(),
-			'limit'=>null,
-			'offset'=>null,
-		);
-		$this->columns    = array();
-		$this->changed_idx = array();
-		$this->column_idx = array();
+		$this->_table = str_replace('lucid_model__','',get_class($this));
+		$this->reset();
+		$this->_columns     = array();
+		$this->_keys        = array();
+		$this->_changed_idx = array();
+		$this->_column_idx  = array();
+		$this->_init_columns();
+		$this->_build_column_index();
+	}
+
+	public function reset($reset_clauses=true)
+	{
+		$this->_last_sql = '';
+		$this->_data     = array();
+		$this->row       = -1;
+		$this->count     = 0;
+		if($reset_clauses === true)
+		{
+			$this->_sql_clauses['where']  = array();
+			$this->_sql_clauses['sort']   = array();
+			$this->_sql_clauses['join']   = array();
+			$this->_sql_clauses['group']  = array();
+			$this->_sql_clauses['limit']  = null;
+			$this->_sql_clauses['offset'] = null;
+		}
+		return $this;
+	}
 		
-		$this->init_columns();
-	}
-	
 	# this is always overridden in child class
-	public function init_columns()
+	public function _init_columns()
 	{
-		throw new Exception('init_columns called in model '.$this->table.', model must contain init_columns',98);
+		throw new Exception('_init_columns called in model '.$this->_table.', model must contain init_columns',98);
 	}
 	
-	protected function build_column_index()
+	protected function _build_column_index()
 	{
-		$this->column_count = count($this->columns);
+		$this->column_count = count($this->_columns);
 		for($i=0;$i<$this->column_count;$i++)
 		{
-			$this->column_idx[$this->columns[$i]->name] = $i;
+			$this->_column_idx[$this->_columns[$i]->name] = $i;
 		}
 	}
 	
 	public function get_idx_value($col_idx)
 	{
-		return $this->data[$this->row][$this->columns[$col_idx]['name']];
+		return $this->_data[$this->row][$this->_columns[$col_idx]['name']];
 	}
 	
 	public function get_value($col_name)
 	{
-		return $this->data[$this->row][$col_name];
+		return $this->_data[$this->row][$col_name];
 	}
 	
 	public function get_row()
 	{
-		return $this->data[$this->row];
+		return $this->_data[$this->row];
 	}
 	
 	public function __toString()
 	{
-		$description = "[".get_class($this)."]: ".print_r($this->data[$this->row],true);
+		$description = "[".get_class($this)."]: ".print_r($this->_data[$this->row],true);
 		return $description;
 	}
 	
-	public static function __callStatic($model_name,$params)
+	public function __call($table,$params)
 	{
-		global $lucid;
-		$base_class_name = 'lucid_model__base__'.$model_name;
-		$main_class_name = 'lucid_model__'.$model_name;
-		if(!class_exists($base_class_name))
+		
+		$model = $this->db->$table();
+		
+		if(isset($this->_keys[$table]))
 		{
-			include($lucid->db->model_path.'base/'.$model_name.'.php');
+			# if the key is on this table, then only a single row
+			# should match in the referenced table. ->one() is used
+			$key = $this->_keys[$table];
+			$model->where($key->ref_column,'=',$this[$key->key_column])->one();
+			return $model;
 		}
-		if(!class_exists($main_class_name))
+		else
 		{
-			include($lucid->db->model_path.$model_name.'.php');
+			# if the key is on the referenced table, then many rows 
+			# may match in the referenced table. ->select() is used instead
+			if(isset($model->_keys[$this->_table]))
+			{
+				$key = $model->_keys[$this->_table];
+				$model->where($key->key_column,'=',$this[$key->ref_column])->select();
+				return $model;
+			}
 		}
-		$model = new $main_class_name();
-		return $model;
-	}
-
-	public static function build($name,$columns)
-	{
-		global $lucid;
-
-		$parent_src = "<?php\n";
-		$child_src  = "<?php\n";
-
-		$parent_src .= "class lucid_model__base__$name extends lucid_model\n{\n";
-		$child_src  .= "class lucid_model__$name extends lucid_model__base__$name\n{\n";
-
-		$parent_src .= "\tpublic function init_columns()\n\t{\n";
-		foreach($columns as $column)
-		{
-			$parent_src .= "\t\t$"."this->columns[] = new lucid_db_column(";
-			$parent_src .= $column->idx.',';
-			$parent_src .= "'".$column->name."',";
-			$parent_src .= "'".$column->type."',";
-			$parent_src .= ((is_null($column->length))?'null':$column->length).',';
-			$parent_src .= ((is_null($column->default_value))?'null':$lucid->db->quote($column->default_value)).',';
-			$parent_src .= ((is_null($column->is_nullable))?'true':'false');
-			$parent_src .= ");\n";
-		}
-		$parent_src .= "\t\t$"."this->build_column_index();\n";
-		$parent_src .= "\t}\n";
-
-		$parent_src .= "}\n?".">";
-		$child_src  .= "}\n?".">";
-		return array($parent_src,$child_src);
+		
+		throw new Exception('Join fail: could not find a foreign key to join in table '.$table);
 	}
 }
 

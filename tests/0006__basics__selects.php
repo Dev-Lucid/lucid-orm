@@ -5,7 +5,7 @@ function test_0006__basics__selects()
 	global $lucid;
 	
 	$names = array('admin','testaccount','accountfortesting');
-	$users = lucid_model::users()->select();
+	$users = $lucid->db->users()->select();
 	
 	if($users->count < 3)
 	{

@@ -3,10 +3,10 @@
 function test_0002__basics__list_tables()
 {
 	global $lucid;
-	$tables = $lucid->db->tables();
+	$tables = $lucid->db->_schema_tables();
 	if(count($tables) == 0)
 	{
-		return array(false,'->tables() returned a zero length array.');
+		return array(false,'->_tables() returned a zero length array.');
 	}
 	
 	if(
@@ -20,7 +20,7 @@ function test_0002__basics__list_tables()
 	}
 	else
 	{
-		return array(false,'->tables() did not return the expected table list.');
+		return array(false,'->_tables() did not return the expected table list.');
 	}
 }
 ?>

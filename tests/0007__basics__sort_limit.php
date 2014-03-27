@@ -6,7 +6,7 @@ function test_0007__basics__sort_limit()
 	
 	# note that the order is different from test 6
 	$names = array('accountfortesting','admin','testaccount',);
-	$users = lucid_model::users()->sort('first_name')->select();
+	$users = $lucid->db->users()->sort('first_name')->select();
 	foreach($users as $user)
 	{
 		if($user['first_name'] != $names[$user->row])
@@ -17,7 +17,7 @@ function test_0007__basics__sort_limit()
 	
 	# reverse the array and try again
 	$names = array_reverse($names);
-	$users = lucid_model::users()->sort('first_name','desc')->select();
+	$users = $lucid->db->users()->sort('first_name','desc')->select();
 	foreach($users as $user)
 	{
 		if($user['first_name'] != $names[$user->row])
@@ -26,12 +26,12 @@ function test_0007__basics__sort_limit()
 		}
 	}
 	
-	$users = lucid_model::users()->limit(10)->select();
+	$users = $lucid->db->users()->limit(10)->select();
 	if($users->count != 3)
 	{
 		return array(false,'Incorrect number of rows returned, limit set to 10');
 	}
-	$users = lucid_model::users()->limit(2)->select();
+	$users = $lucid->db->users()->limit(2)->select();
 	if($users->count != 2)
 	{
 		return array(false,'Incorrect number of rows returned, limit set to 2');
