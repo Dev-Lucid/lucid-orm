@@ -29,8 +29,10 @@ class lucid_model_sqlclause
 	public function select()
 	{
 		$this->reset(false);
-		$this->_last_sql  = 'select '.$this->_table.'.* ';
-		$this->_last_sql .= 'from '.$this->_table;
+		$this->_last_sql  = 'select '.$this->_table.'.*';
+		$this->_last_sql .= $this->_build_join_fields();
+		$this->_last_sql .= ' from '.$this->_table;
+		$this->_last_sql .= $this->_build_join_clauses();
 		$this->_last_sql .= $this->_build_wheres();
 		$this->_last_sql .= $this->_build_sorts();
 		$this->_last_sql .= $this->_build_limit_offset();
@@ -44,7 +46,7 @@ class lucid_model_sqlclause
 		}
 		else
 		{
-			throw new Exception('Query failed: '.$this->db->error());
+			throw new Exception('Query failed: '.$this->db->error()."\n".$this->_last_sql);
 		}
 		return $this;
 	}
@@ -210,12 +212,77 @@ class lucid_model_sqlclause
 		return $to_return;
 	}
 	
+	protected function _create_join_model($table)
+	{
+		if(!isset($this->_join_models[$table]))
+		{
+			$this->_join_models[$table] = $this->db->$table();
+			$this->_join_models[$table]->_parent_model = $this;
+		}
+		return $this->_join_models[$table];
+	}
+	
 	private function _build_join_fields()
 	{
+		$to_return = '';
+		foreach($this->_sql_clauses['join'] as $join)
+		{
+			$table = $join['table'];
+			$this->_create_join_model($table);
+			
+			foreach($this->_join_models[$table]->_columns as $column)
+			{
+				$to_return .= ','.$table.'.'.$column->name.' as '.$table.'__'.$column->name;
+			}
+		}
+		return $to_return;
 	}
 
 	private function _build_join_clauses()
 	{
+		$to_return = '';
+		foreach($this->_sql_clauses['join'] as $join)
+		{
+			$table = $join['table'];
+			$this->_create_join_model($table);
+			
+			$to_return .= ' '.$join['type'].' join '.$join['table'].' on (';
+			
+			
+			if(isset($this->_keys[$table]))
+			{
+				#echo("found a join key for ".$table." in ".$this->_table."\n");
+				$key = $this->_keys[$table];
+				$to_return .= $table.'.'.$key->ref_column.'='.$this->_table.'.'.$key->key_column;
+			}
+			else
+			{
+				#echo("did NOT find a join key for ".$table." in ".$this->_table.", searching other joined tables\n");
+				
+				$found = false;
+				
+				foreach($this->_join_models as $model)
+				{
+					#echo("checking for a join key for ".$table." in ".$model->_table."\n");
+				
+					if(isset($model->_keys[$table]))
+					{
+						$key = $model->_keys[$table];
+						#echo("found one: ".json_encode($key)."\n");
+						$to_return .= $table.'.'.$key->ref_column.'='.$model->_table.'.'.$key->key_column;
+						$found = true;
+					}
+				}
+				
+				if(!$found)
+				{
+					throw new Exception('Join fail: could not find a foreign key to join in table '.$table.'. Note that joining this way requires the relationship be one to one, or many to one.');
+				}
+			}
+			
+			$to_return .= ')';
+		}
+		return $to_return;
 	}
 
 	private function _insert($data)
@@ -306,8 +373,17 @@ class lucid_model_sqlclause
 		return $this;
 	}
 	
-	public function join()
+	public function join($table,$type='inner',$extra_condition='')
 	{
+		if($type != 'left' and $type != 'inner' and $type != 'right')
+		{
+			throw new Exception('model->join() can only handle left, inner, and right joins currently.');
+		}
+		$this->_sql_clauses['join'][] = array(
+			'table'=>$table,
+			'type'=>$type,
+			'extra_condition'=>$extra_condition,
+		);
 		return $this;
 	}
 	

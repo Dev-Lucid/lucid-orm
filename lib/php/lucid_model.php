@@ -10,7 +10,11 @@ class lucid_model extends lucid_model_iterator
 	public $_changed_idx;
 	public $_column_idx;
 	public $_sql_clauses;
+	public $_join_models;
 	public $_loaded;
+	
+	public $_parent_model;
+	public $_parent_id;
 	
 	public $row;
 	public $count;
@@ -27,8 +31,10 @@ class lucid_model extends lucid_model_iterator
 		$this->_changed_idx = null;
 		$this->_column_idx  = null;
 		$this->_sql_clauses = null;
+		$this->_join_models = array();
 		$this->_loaded      = false;
-	
+		$this->_parent_model = null;
+		$this->_parent_id    = null;
 		$this->_init_columns();
 		$this->_build_column_index();
 		$this->reset();
@@ -95,6 +101,12 @@ class lucid_model extends lucid_model_iterator
 		{
 			throw new Exception('Could not get joined table '.$name.' from '.$this->_table.', parent table not loaded yet');
 		}
+		
+		if(!isset($this->_data[$this->row]['_relations']))
+		{
+			$this->_data[$this->row]['_relations'] = null;
+		}
+		
 		if(!is_array($this->_data[$this->row]['_relations']))
 		{
 			$this->_data[$this->row]['_relations'] = array();
@@ -121,6 +133,17 @@ class lucid_model extends lucid_model_iterator
 		
 	public function _get_joined_model($table)
 	{
+		if(isset($this->_join_models[$table]))
+		{
+			$model = $this->_create_join_model($table);
+			if($model->_parent_id != $this->_data[$this->row][$this->_columns[0]->name])
+			{
+				$model->_load_prefixed_data($this->_data[$this->row]);
+				$model->_parent_id = $this->_data[$this->row][$this->_columns[0]->name];
+			}
+			return $model;
+		}
+		
 		$model = $this->db->$table();
 		
 		if(isset($this->_keys[$table]))
@@ -144,6 +167,16 @@ class lucid_model extends lucid_model_iterator
 		}
 		
 		throw new Exception('Join fail: could not find a foreign key to join in table '.$table);
+	}
+	
+	public function _load_prefixed_data($data)
+	{
+		foreach($this->_columns as $column)
+		{
+			$this[$column->name] = $data[$this->_table.'__'.$column->name];
+		}
+		$this->_changed_idx = array();
+		return $this;
 	}
 }
 

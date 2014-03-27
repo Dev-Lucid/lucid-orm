@@ -31,6 +31,11 @@ class lucid_model_arrayaccess extends lucid_model_sqlclause implements ArrayAcce
 		}
 		
 		$this->_data[$this->row][$offset] = $value;
+		
+		if(!is_null($this->_parent_model))
+		{
+			$this->_parent_model[$this->_table.'__'.$offset] = $value;
+		}
 	}
 	
 	public function offsetUnset ( $offset )
