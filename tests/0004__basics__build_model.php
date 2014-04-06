@@ -14,7 +14,9 @@ class lucid_model__base__users extends lucid_model
 		$this->_columns[] = new lucid_db_column(3,\'password\',\'string\',null,null,false);
 		$this->_columns[] = new lucid_db_column(4,\'first_name\',\'string\',null,null,false);
 		$this->_columns[] = new lucid_db_column(5,\'last_name\',\'string\',null,null,false);
-		$this->_columns[] = new lucid_db_column(6,\'creation_date\',\'timestamp\',null,\'CURRENT_TIMESTAMP\',false);
+		$this->_columns[] = new lucid_db_column(6,\'score\',\'double\',null,\'0.0\',false);
+		$this->_columns[] = new lucid_db_column(7,\'is_deleted\',\'boolean\',null,\'false\',false);
+		$this->_columns[] = new lucid_db_column(8,\'creation_date\',\'timestamp\',null,\'CURRENT_TIMESTAMP\',false);
 		$this->_keys[\'organizations\'] = new lucid_db_key(\'org_id\',\'organizations\',\'org_id\');
 	}
 }

@@ -29,6 +29,8 @@ create table users (
 	password varchar(255),
 	first_name varchar(50),
 	last_name varchar(50),
+	score numeric(10,2) default 0.0,
+	is_deleted bool default false,
 	creation_date timestamp DEFAULT CURRENT_TIMESTAMP
 );
 CREATE UNIQUE INDEX idx__users__user_id ON users (user_id);

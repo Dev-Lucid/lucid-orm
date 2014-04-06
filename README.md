@@ -12,5 +12,6 @@ There are two main components in lucid-orm: the adaptor and the model. The adapt
 The model has a number of different uses. It is used both to select data from your database, and to iterate over the resultset.
 
 * [Querying](querying.md)
+* [Joins](joins.md)
 * [Database Design Recommendations](db_design.md)
 * [Advanced Topics](advanced.md)

@@ -44,17 +44,21 @@ class lucid_db_adaptor_sqlite extends lucid_db_adaptor
 			{
 				$type = 'string';
 			}
-			if(strstr($result['type'],'decimal') !== false or strstr($result['type'],'numeric') !== false)
+			else if(strstr($result['type'],'decimal') !== false or strstr($result['type'],'numeric') !== false)
 			{
-				$type = 'float';
+				$type = 'double';
 			}
-			if(strstr($result['type'],'date') !== false or strstr($result['type'],'time') !== false)
+			else if(strstr($result['type'],'date') !== false or strstr($result['type'],'time') !== false)
 			{
 				$type = 'timestamp';
 			}
-			if(strstr($result['type'],'bool') !== false)
+			else if(strstr($result['type'],'bool') !== false)
 			{
 				$type = 'boolean';
+			}
+			else
+			{
+				#echo("could not determine type for ".$result['type'].", defaulting to int");
 			}
 
 			$final_columns[] = new lucid_db_column(
