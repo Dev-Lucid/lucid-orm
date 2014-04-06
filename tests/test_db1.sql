@@ -36,9 +36,9 @@ create table users (
 CREATE UNIQUE INDEX idx__users__user_id ON users (user_id);
 CREATE INDEX idx__users__org_id ON users (org_id);
 
-insert into users (org_id,email,password,first_name,last_name) values 
-	(1,'admin@lucid-orm-testing.net','password','admin','admin');
-insert into users (org_id,email,password,first_name,last_name) values 
-	(2,'testing1@lucid-orm.org','mypassword1','testaccount','number1');
-insert into users (org_id,email,password,first_name,last_name) values 	
-	(3,'testing2@lucid-ftw.com','passwordmy2','accountfortesting','numerodos');
+insert into users (org_id,email,password,first_name,last_name,creation_date) values 
+	(1,'admin@lucid-orm-testing.net','password','admin','admin','2014-01-01 12:00:00');
+insert into users (org_id,email,password,first_name,last_name,creation_date) values 
+	(2,'testing1@lucid-orm.org','mypassword1','testaccount','number1','2014-02-01 12:00:00');
+insert into users (org_id,email,password,first_name,last_name,creation_date) values 	
+	(3,'testing2@lucid-ftw.com','passwordmy2','accountfortesting','numerodos','2014-03-01 12:00:00');
