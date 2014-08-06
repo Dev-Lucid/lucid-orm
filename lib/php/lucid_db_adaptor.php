@@ -2,36 +2,62 @@
 
 class lucid_db_adaptor
 {
-	public    $last_sql;
-	protected $pdo;
-	protected $is_connected;
-	public    $query_log;
+	public    $last_query = null;
+	public    $query_log  = [];
+    
+    protected $_pdo          = null;
+	protected $_is_connected = false;
+    protected $_model_cache  = [];
 
+    public $last_error        = null;
+    public $throw_exceptions  = true;
+	
 	public static function init($config)
 	{
+        if(!isset($config['type']))
+        {
+            $config['type'] = 'null';
+        }
 		$adaptor_class = 'lucid_db_adaptor_'.$config['type'];
-		if(file_exists(__DIR__.'/'.$adaptor_class.'.php'))
+        
+		if(!class_exists($adaptor_class))
 		{
-			include(__DIR__.'/'.$adaptor_class.'.php');
-		}
-		else
-		{
-			throw new Exception('No database adaptor for type '.$config['type']);
+            if(file_exists(__DIR__.'/'.$adaptor_class.'.php'))
+            {
+                include(__DIR__.'/'.$adaptor_class.'.php');
+            }
+            else
+            {
+            	$this->last_error = 'No database adaptor for type '.$config['type'];
+            	if($this->throw_exceptions)
+            	{
+	                throw new Exception($this->last_error);
+            	}
+            	return null;
+            }
 		}
 		$adaptor = new $adaptor_class($config);
-		$adaptor->query_log = array();
 		return $adaptor;
 	}
+    
+    public function get_model_from_cache($name)
+    {
+        if(!isset($this->_model_cache[$name]))
+        {
+            $this->_model_cache[$name] = $this->$name();
+        }
+        return $this->_model_cache[$name];
+    }
 	
 	# these are low level functions that just return arrays, not objectsa
 	public function _schema_tables()
 	{
-		$sql = 'select table_name from information_schema.tables where information_schema.tables.TABLE_SCHEMA='.$this->pdo->quote($this->config['database']).';';
-		$statement = $this->pdo->query($sql);
+		$sql = 'select table_name from information_schema.tables where information_schema.tables.TABLE_SCHEMA='.$this->_pdo->quote($this->config['database']).';';
+		$statement = $this->_pdo->query($sql);
 		if($statement === false)
 		{
-			$info = $this->pdo->errorInfo();
-			throw new Exception('Query failure: '.$info[2],$info[1]);
+			$info = $this->_pdo->errorInfo();
+			throw new Exception(get_class($this).': query failure. msg='.$info[2],$info[1]);
 		}
 		$result = $statement->fetchAll();
 		return array_map(function($in){return $in[0];},$result);
@@ -42,12 +68,12 @@ class lucid_db_adaptor
 		$sql = '
 			select * 
 			FROM INFORMATION_SCHEMA.COLUMNS 
-			where TABLE_SCHEMA='.$this->pdo->quote($this->config['database']).'
-			and TABLE_NAME='.$this->pdo->quote($table);
-		$statement = $this->pdo->query($sql);
+			where TABLE_SCHEMA='.$this->_pdo->quote($this->config['database']).'
+			and TABLE_NAME='.$this->_pdo->quote($table);
+		$statement = $this->_pdo->query($sql);
 		if($statement === false)
 		{
-			throw new Exception('Query failure: '.$this->error);
+			throw new Exception(get_class($this).': query failure. msg='.$this->error);
 		}
 		$result = $statement->fetchAll();	
 		return $result;
@@ -66,36 +92,64 @@ class lucid_db_adaptor
 
 	public function is_connected()
 	{
-		return $this->pdo->getAttribute(PDO::ATTR_CONNECTION_STATUS);
+		return $this->_pdo->getAttribute(PDO::ATTR_CONNECTION_STATUS);
 	}
 
 	public function quote($value)
 	{
-		return $this->pdo->quote($value);
+        if(is_numeric($value))
+        {
+            return $value;
+        }
+        else if (is_bool($value))
+        {
+            return $value;
+        }
+        else
+        {
+            if(is_null($this->_pdo))
+            {
+                return "'".addslashes($value)."'";
+            }
+            else
+            {
+                return $this->_pdo->quote($value);
+            }
+        }
 	}
 	
 	public function query($sql)
 	{
-		$this->_last_sql = $sql;
+		$this->last_query = $sql;
 		$this->query_log[] = $sql;
-		return $this->pdo->query($sql);
+
+		if($this->_pdo == null)
+		{
+			$this->last_error = 'lucid_db_adaptor: adaptor does not have a valid PDO connection.';
+	    	if($this->throw_exceptions)
+	    	{
+	            throw new Exception($this->last_error);
+	    	}
+	    	return null;
+		}
+		return $this->_pdo->query($sql);
 	}
 	
 	public function error()
 	{
-		list($sql_state, $code, $msg) = $this->pdo->errorInfo();
+		list($sql_state, $code, $msg) = $this->_pdo->errorInfo();
 		return '['.$sql_state.':'.$code.'] '.$msg;
 	}
 	
 	public function bind_and_run($sql,$data)
 	{
 		$this->query_log[] = $sql;
-		$this->_last_sql   = $sql;
-		$statement = $this->pdo->prepare($sql);
+		$this->last_query   = $sql;
+		$statement = $this->_pdo->prepare($sql);
 		
 		if($statement === false)
 		{
-			throw new Exception('Could not prepare query: '.$sql);
+			throw new Exception(get_class($this).': could not prepare query. sql='.$sql);
 		}
 		
 		foreach($data as $key=>$value)
@@ -110,13 +164,18 @@ class lucid_db_adaptor
 		}
 		else
 		{
-			throw new Exception('Query failed: '.$this->error());
+			$this->last_error = get_class($this).': query failure. msg='.$this->error();
+	    	if($this->throw_exceptions)
+	    	{
+	            throw new Exception($this->last_error);
+	    	}
+			return null;
 		}
 	}
 	
 	public function _last_insert_id()
 	{
-		return $this->pdo->lastInsertId();
+		return $this->_pdo->lastInsertId();
 	}
 	
 	# used to instantiate models
@@ -133,7 +192,7 @@ class lucid_db_adaptor
 			include($this->model_path.$model_name.'.php');
 		}
 		$model = new $main_class_name();
-		$model->db = $this;
+        $model->bind_to_db($this);
 		
 		if(count($params) == 1 and is_numeric($params[0]))
 		{
@@ -150,10 +209,10 @@ class lucid_db_adaptor
 		$parent_src .= "class lucid_model__base__$name extends lucid_model\n{\n";
 		$child_src  .= "class lucid_model__$name extends lucid_model__base__$name\n{\n";
 
-		$parent_src .= "\tpublic function _init_columns()\n\t{\n";
+		$parent_src .= "\tpublic function init()\n\t{\n";
 		foreach($columns as $column)
 		{
-			$parent_src .= "\t\t$"."this->_columns[] = new lucid_db_column(";
+			$parent_src .= "\t\t$"."this->columns[] = new lucid_db_column(";
 			$parent_src .= $column->idx.',';
 			$parent_src .= "'".$column->name."',";
 			$parent_src .= "'".$column->type."',";
@@ -163,16 +222,20 @@ class lucid_db_adaptor
 			$parent_src .= ");\n";
 		}
 		
-		foreach($keys as $key)
-		{
-			$parent_src .= "\t\t$"."this->_keys['".$key[1]."'] = new lucid_db_key('".$key[0]."','".$key[1]."','".$key[2]."');\n";
-		}
-		
 		$parent_src .= "\t}\n";
 
 		$parent_src .= "}\n?".">";
 		$child_src  .= "}\n?".">";
-		return array($parent_src,$child_src);
+		return [$parent_src,$child_src];
+	}
+
+	public function errorInfo()
+	{
+		if(is_null($this->_pdo))
+		{
+			return null;
+		}
+		return $this->_pdo->errorInfo();
 	}
 }
 

@@ -13,7 +13,8 @@ create table organizations(
 	org_id integer primary key autoincrement,
 	role_id integer references roles(role_id),
 	name varchar(255),
-	creation_date timestamp default CURRENT_TIMESTAMP
+	creation_date timestamp default CURRENT_TIMESTAMP,
+	FOREIGN KEY(role_id) references roles(role_id)
 );
 CREATE UNIQUE INDEX idx__organizations__org_id ON organizations (org_id);
 CREATE INDEX idx__organizations__role_id ON organizations (role_id);
@@ -31,7 +32,8 @@ create table users (
 	last_name varchar(50),
 	score numeric(10,2) default 0.0,
 	is_deleted bool default false,
-	creation_date timestamp DEFAULT CURRENT_TIMESTAMP
+	creation_date timestamp DEFAULT CURRENT_TIMESTAMP,
+	FOREIGN KEY(org_id) references organizations(org_id)
 );
 CREATE UNIQUE INDEX idx__users__user_id ON users (user_id);
 CREATE INDEX idx__users__org_id ON users (org_id);

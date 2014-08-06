@@ -5,7 +5,7 @@ class lucid_db_adaptor_sqlite extends lucid_db_adaptor
 	public function __construct($config)
 	{		
 		$this->is_connected = false;
-		$this->pdo = new PDO('sqlite:'.$config['path']);
+		$this->_pdo = new PDO('sqlite:'.$config['path']);
 		$this->model_path = $config['model_path'];
 		$this->is_connected = true;
 	}
@@ -15,10 +15,10 @@ class lucid_db_adaptor_sqlite extends lucid_db_adaptor
 	{
 		$sql = 'SELECT name as table_name FROM sqlite_master WHERE type=\'table\' and name<>\'sqlite_sequence\' order by name;';
 
-		$statement = $this->pdo->query($sql);
+		$statement = $this->_pdo->query($sql);
 		if($statement === false)
 		{
-			$info = $this->pdo->errorInfo();
+			$info = $this->_pdo->errorInfo();
 			throw new Exception('Query failure: '.$info[2],$info[1]);
 		}
 		$result = $statement->fetchAll();
@@ -27,12 +27,17 @@ class lucid_db_adaptor_sqlite extends lucid_db_adaptor
 
 	public function _schema_columns($table)
 	{
-		$sql = 'PRAGMA table_info('.$this->pdo->quote($table).');';
-		$statement = $this->pdo->query($sql);
+		$sql = 'PRAGMA table_info('.$this->_pdo->quote($table).');';
+		$statement = $this->_pdo->query($sql);
 		if($statement === false)
 		{
-			$info = $this->pdo->errorInfo();
-			throw new Exception('Query failure: '.$info[2],$info[1]);
+			$info = $this->_pdo->errorInfo();
+			$this->last_error = 'Query failure: '.$info[2].' - '.$info[1];
+	    	if($this->throw_exceptions)
+	    	{
+	            throw new Exception($this->last_error);
+	    	}
+	    	return null;
 		}
 
 		$final_columns = array();
@@ -78,7 +83,7 @@ class lucid_db_adaptor_sqlite extends lucid_db_adaptor
 	public function _schema_keys($table)
 	{
 		$keys = array();
-		$result = $this->pdo->query('select sql from sqlite_master where type=\'table\' and name='.$this->quote($table).';')->fetchAll();
+		$result = $this->_pdo->query('select sql from sqlite_master where type=\'table\' and name='.$this->quote($table).';')->fetchAll();
 		$columns = explode("\n",$result[0]['sql']);
 		array_pop($columns);
 		array_shift($columns);
@@ -88,9 +93,13 @@ class lucid_db_adaptor_sqlite extends lucid_db_adaptor
 			if(count($matches) > 0)
 			{
 				array_shift($matches);
-				$keys[] = $matches;
+				if($matches[0] != 'FOREIGN')
+				{
+					$keys[] = $matches;
+				}
 			}
 		}
+
 		return $keys;
 	}
 	
