@@ -16,9 +16,7 @@ class lucid_db_adaptor_sqlite extends lucid_db_adaptor
 		$this->_pdo = new PDO('sqlite:'.$config['path']);
 		
 		$this->is_connected = true;
-		error_log('about to use log');
 		$this->log('database connection up');
-		error_log('done with log');
 	}
 
 	# these are low level functions that just return arrays, not objectsa
