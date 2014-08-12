@@ -14,6 +14,10 @@ class lucid_db_adaptor
 	
 	public static function init($config)
 	{
+		if(!is_array($config))
+        {
+        	$config = [];
+        }
         if(!isset($config['type']))
         {
             $config['type'] = 'null';
@@ -38,6 +42,41 @@ class lucid_db_adaptor
 		}
 		$adaptor = new $adaptor_class($config);
 		return $adaptor;
+	}
+
+	public function log($string_to_log,$severity=1,$type='sql')
+	{
+		global $lucid;
+		
+		# format some basic info.
+		$ip	  = str_pad(((isset($_SERVER['REMOTE_ADDR']))?$_SERVER['REMOTE_ADDR']:'127.0.0.1'),15,' ');
+		$session = (session_id() == '')?'[nosession]':session_id();
+		
+		# tidy up the string a bit
+		if(is_array($string_to_log))
+		{
+			$string_to_log = print_r($string_to_log,true);
+		}
+		$string_to_log = strtr($string_to_log,"\n",' ');
+		
+		# construct the final string
+		$out  = 'ip:'.$ip.'|sess:'.$session.'|'.'sev:'.$severity.'|';
+		$out .= str_pad('type:'.$type,18,' ').'| ';
+		$out .= $string_to_log."\n";
+
+		# log either to a specified file, or to the error_log
+		if(isset($this->_config['log_path']) and !is_null($this->_config['log_path']))
+		{
+			if(!isset($this->_config['log-handle']) or is_null($this->_config['log-handle']))
+			{
+				$this->_config['log-handle'] = fopen($this->_config['log_path'],'a');
+			}
+			fwrite($this->_config['log-handle'],$out);
+		}
+		else
+		{
+			error_log($out);
+		}
 	}
     
     public function get_model_from_cache($name)
@@ -120,6 +159,7 @@ class lucid_db_adaptor
 	
 	public function query($sql)
 	{
+		$this->log($sql);
 		$this->last_query = $sql;
 		$this->query_log[] = $sql;
 
@@ -181,15 +221,16 @@ class lucid_db_adaptor
 	# used to instantiate models
 	public function __call($model_name,$params)
 	{
+		$this->log('loading model: '.$model_name);
 		$base_class_name = 'lucid_model__base__'.$model_name;
 		$main_class_name = 'lucid_model__'.$model_name;
 		if(!class_exists($base_class_name))
 		{
-			include($this->model_path.'base/'.$model_name.'.php');
+			include($this->$this->_config['model_path'].'base/'.$model_name.'.php');
 		}
 		if(!class_exists($main_class_name))
 		{
-			include($this->model_path.$model_name.'.php');
+			include($this->$this->_config['model_path'].$model_name.'.php');
 		}
 		$model = new $main_class_name();
         $model->bind_to_db($this);

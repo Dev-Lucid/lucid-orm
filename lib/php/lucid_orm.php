@@ -2,7 +2,7 @@
 
 class lucid_orm
 {
-    public static function init($config)
+    public static function init($config=array())
     {
         if(!class_exists('lucid_model'))
         {

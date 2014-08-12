@@ -2,22 +2,28 @@
 
 class lucid_db_adaptor_mysql extends lucid_db_adaptor
 {
-	public function __construct()
+	public function __construct($config=array())
 	{
 		global $lucid;
 		$this->is_connected = false;
 		$lucid->db = $this;
-		$this->model_path = $config['model_path'];
-
+		$this->_config = [
+			'log_file'=>null,
+			'log_handle'=>null,
+		];
+		foreach($config as $setting=>$value)
+		{
+			$this->_config[$setting] = $value;
+		}
 		
 		$dsn = 'mysql:host='.$lucid->config['db']['hostname'].';dbname='.$lucid->config['db']['database'].';';
-		$this->pdo = new PDO(
+		$this->_pdo = new PDO(
 			$dsn, 
 			$lucid->config['db']['username'], 
 			$lucid->config['db']['password']
 		);
 		$this->is_connected = true;
-		lucid::log('database connection up');
+		$this->log('database connection up');
 		
 	}
 

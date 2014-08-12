@@ -2,16 +2,24 @@
 
 class lucid_db_adaptor_pgsql extends lucid_db_adaptor
 {
-	public function __construct($config)
+	public function __construct($config=array())
 	{
+		$this->_config = [
+			'log_file'=>null,
+			'log_handle'=>null,
+		];
+		foreach($config as $setting=>$value)
+		{
+			$this->_config[$setting] = $value;
+		}
 		$dsn = 'pgsql:host='.$config['db']['hostname'].';dbname='.$config['db']['database'].';';
-		$this->pdo = new PDO(
+		$this->_pdo = new PDO(
 			$dsn, 
 			$config['db']['username'], 
 			$config['db']['password']
 		);
 		$this->model_path = $config['model_path'];
-		lucid::log('database connection up');
+		$this->log('database connection up');
 	}
 
 	public function columns($table)
