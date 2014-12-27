@@ -58,7 +58,21 @@ class lucid_model_sql extends lucid_model_access
         # if three parameters are passed, assume 1st is a column, 2nd is operator, and 3rd is value
         else if($count == 3)
         {
-            $this->_wheres[] = $args[0].' '.$args[1].' '.$this->_quote($args[2]);
+            switch($args[1])
+            {
+                case '%':
+                    $this->_wheres[] = $args[0].' like '.$this->_quote('%'.$args[2].'%');
+                    break;
+                case '%=':
+                    $this->_wheres[] = $args[0].' like '.$this->_quote('%'.$args[2]);
+                    break;
+                case '=%':
+                    $this->_wheres[] = $args[0].' like '.$this->_quote($args[2].'%');
+                    break;
+                default:
+                    $this->_wheres[] = $args[0].' '.$args[1].' '.$this->_quote($args[2]);
+                    break;
+            }
         }
         
         return $this;
@@ -310,6 +324,32 @@ class lucid_model_sql extends lucid_model_access
             $this->_handle_eager_loads($eager_loads);
         }
         return $this;
+    }
+
+    public function select_unpaged_count()
+    {
+        $query = 'select ';
+        $query .= 'count(1) as row_count ';
+        $query .= 'from '.$this->table."\n";
+        $query .= $this->_build_joins();
+        $query .= $this->_build_wheres();
+        $query .= $this->_build_order_by();
+        $query .= $this->_build_group_by().';'; 
+        $result = $this->_db->query($query);
+        if($result === false)
+        {
+            $this->_db->last_error = 'lucid_model(_sql): query exception. '.$this->_db->errorInfo()[2].'. Last query run: '.$this->_db->last_query;
+            if($this->_db->throw_exceptions)
+            {
+                throw new Exception($this->_db->last_error);
+            }
+            return null;
+        }
+        else
+        {
+            $result = $result->fetchAll(PDO::FETCH_ASSOC);
+            return $result[0]['row_count'];
+        }
     }
 
 

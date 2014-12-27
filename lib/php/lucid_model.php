@@ -23,8 +23,9 @@ class lucid_model extends lucid_model_sql
     protected $_join_idx = 0;
     protected $_join_sql_aliases = array();
     
-    public function __construct()
+    public function __construct($table)
     {
+        $this->table = $table;
         $this->init();
         $this->_build_column_index();
     }

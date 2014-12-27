@@ -226,13 +226,13 @@ class lucid_db_adaptor
 		$main_class_name = 'lucid_model__'.$model_name;
 		if(!class_exists($base_class_name))
 		{
-			include($this->$this->_config['model_path'].'base/'.$model_name.'.php');
+			include($this->_config['model_path'].'base/'.$model_name.'.php');
 		}
 		if(!class_exists($main_class_name))
 		{
-			include($this->$this->_config['model_path'].$model_name.'.php');
+			include($this->_config['model_path'].$model_name.'.php');
 		}
-		$model = new $main_class_name();
+		$model = new $main_class_name($model_name);
         $model->bind_to_db($this);
 		
 		if(count($params) == 1 and is_numeric($params[0]))
